@@ -1,11 +1,31 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { UserButton, useUser } from "@clerk/nextjs";
-import { MessageSquare, Settings, ChevronRight } from "lucide-react";
+import { Calendar, MessageSquare, Settings, ChevronRight, Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser();
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [calendarEmail, setCalendarEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkCalendarStatus() {
+      try {
+        const res = await fetch("/api/calendar/status");
+        const data = await res.json();
+        setCalendarConnected(data.connected);
+        setCalendarEmail(data.calendarId);
+      } catch (error) {
+        console.error("Failed to check calendar status:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (isLoaded) checkCalendarStatus();
+  }, [isLoaded]);
 
   if (!isLoaded) {
     return (
@@ -46,7 +66,8 @@ export default function Dashboard() {
       <main className="ml-64 p-8">
         <div className="max-w-4xl">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, {user?.firstName || "there"}!</h1>
-          <p className="text-gray-600 mb-8">Here is what is happening with your schedule</p>
+          <p className="text-gray-600 mb-8">Here's what's happening with your schedule</p>
+
           <div className="grid md:grid-cols-2 gap-4 mb-8">
             <Link href="/chat" className="p-6 bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl text-white hover:from-sky-600 hover:to-sky-700 transition-all group">
               <MessageSquare className="w-8 h-8 mb-3" />
@@ -65,8 +86,64 @@ export default function Dashboard() {
               </div>
             </Link>
           </div>
+
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${calendarConnected ? "bg-green-100" : "bg-gray-100"}`}>
+                  <Calendar className={`w-6 h-6 ${calendarConnected ? "text-green-600" : "text-gray-500"}`} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Google Calendar</h3>
+                  {loading ? (
+                    <p className="text-sm text-gray-500">Checking connection...</p>
+                  ) : calendarConnected ? (
+                    <p className="text-sm text-green-600 flex items-center gap-1"><Check className="w-4 h-4" /> Connected to {calendarEmail}</p>
+                  ) : (
+                    <p className="text-sm text-gray-500">Not connected</p>
+                  )}
+                </div>
+              </div>
+              {!loading && !calendarConnected && (
+                <a href="/api/auth/google" className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg font-medium hover:bg-sky-600 transition-colors">
+                  <ExternalLink className="w-4 h-4" /> Connect Calendar
+                </a>
+              )}
+              {!loading && calendarConnected && (
+                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">Connected</span>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-2xl p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Getting Started</h2>
+            <div className="space-y-3">
+              <SetupItem title="Create your account" description="Sign up with Google or email" completed={true} />
+              <SetupItem title="Connect Google Calendar" description="Give Otto access to read and write events" completed={calendarConnected} action={!calendarConnected ? <a href="/api/auth/google" className="text-sky-600 hover:text-sky-700 text-sm font-medium">Connect</a> : undefined} />
+              <SetupItem title="Fill out your profile" description="Add family members, preferences, and recurring reminders" completed={false} href="/dashboard/profile" />
+              <SetupItem title="Start chatting" description="Try asking Otto to schedule something!" completed={false} href="/chat" />
+            </div>
+          </div>
         </div>
       </main>
     </div>
   );
+}
+
+function SetupItem({ title, description, completed, href, action }: { title: string; description: string; completed: boolean; href?: string; action?: React.ReactNode }) {
+  const content = (
+    <div className={`flex items-center gap-4 p-4 rounded-xl ${completed ? "bg-green-50" : "bg-gray-50 hover:bg-gray-100"} transition-colors`}>
+      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${completed ? "bg-green-500 text-white" : "border-2 border-gray-300"}`}>
+        {completed && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>}
+      </div>
+      <div className="flex-1">
+        <h3 className={`font-medium ${completed ? "text-green-800" : "text-gray-900"}`}>{title}</h3>
+        <p className={`text-sm ${completed ? "text-green-600" : "text-gray-500"}`}>{description}</p>
+      </div>
+      {action}
+      {!completed && href && !action && <ChevronRight className="w-5 h-5 text-gray-400" />}
+    </div>
+  );
+  if (href && !completed && !action) return <Link href={href}>{content}</Link>;
+  return content;
 }
