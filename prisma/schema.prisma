@@ -8,17 +8,16 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  clerkId         String    @unique
-  email           String    @unique
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  subscription    Subscription @default(FREE)
+  id               String              @id @default(cuid())
+  clerkId          String              @unique
+  email            String              @unique
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  subscription     Subscription        @default(FREE)
   stripeCustomerId String?
-
-  profile         Profile?
-  calendarTokens  CalendarToken[]
-  chatMessages    ChatMessage[]
+  profile          Profile?
+  calendarTokens   CalendarToken[]
+  chatMessages     ChatMessage[]
   discordConnection DiscordConnection?
   telegramConnection TelegramConnection?
 
@@ -33,31 +32,98 @@ enum Subscription {
 }
 
 model Profile {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name            String?
-  timezone        String    @default("America/Los_Angeles")
-  location        String?
-  zipCode         String?
-  partnerName     String?
-  kids            Json?
-  pets            Json?
-  anniversary     DateTime?
-  birthdays       Json?
-  reminders       Json?
-  dietaryPrefs    String?
-  workSchedule    Json?
-  hobbies         String[]  @default([])
-  customContext   String?   @db.Text
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String?
+  timezone      String   @default("America/Los_Angeles")
+  location      String?
+  zipCode       String?
+  partnerName   String?
+  kids          Json?
+  pets          Json?
+  anniversary   DateTime?
+  birthdays     Json?
+  reminders     Json?
+  dietaryPrefs  String?
+  workSchedule  Json?
+  hobbies       String[] @default([])
+  customContext String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([userId])
 }
 
 model CalendarToken {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken     String    @db.
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  calendarId   String   @default("primary")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      MessageRole
+  content   String        @db.Text
+  source    MessageSource @default(WEB)
+  createdAt DateTime      @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum MessageSource {
+  WEB
+  DISCORD
+  TELEGRAM
+  SMS
+}
+
+model DiscordConnection {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  discordUserId   String
+  discordUsername String?
+  dmChannelId     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([discordUserId])
+}
+
+model TelegramConnection {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  telegramChatId   String
+  telegramUsername String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([telegramChatId])
+}
+
+model WaitlistEntry {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  referralSource String?
+  createdAt      DateTime @default(now())
+
+  @@index([email])
+}
