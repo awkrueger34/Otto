@@ -1,5 +1,3 @@
-// Prisma schema for Otto - Personal AI Assistant
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,19 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model - extends Clerk user data
 model User {
   id              String    @id @default(cuid())
   clerkId         String    @unique
   email           String    @unique
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-
-  // Subscription
   subscription    Subscription @default(FREE)
   stripeCustomerId String?
 
-  // Relations
   profile         Profile?
   calendarTokens  CalendarToken[]
   chatMessages    ChatMessage[]
@@ -38,126 +32,32 @@ enum Subscription {
   PREMIUM
 }
 
-// User Profile - Personal context for the AI
 model Profile {
   id              String    @id @default(cuid())
   userId          String    @unique
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Basic info
   name            String?
   timezone        String    @default("America/Los_Angeles")
   location        String?
   zipCode         String?
-
-  // Family members
   partnerName     String?
-  kids            Json?     // [{name, birthdate}]
-  pets            Json?     // [{name, type}]
-
-  // Important dates
+  kids            Json?
+  pets            Json?
   anniversary     DateTime?
-  birthdays       Json?     // [{name, date, relationship}]
-
-  // Recurring reminders
-  reminders       Json?     // [{dayOfWeek, dayOfMonth, message}]
-
-  // Preferences
+  birthdays       Json?
+  reminders       Json?
   dietaryPrefs    String?
-  workSchedule    Json?     // {startTime, endTime, days}
+  workSchedule    Json?
   hobbies         String[]  @default([])
-
-  // Custom context (free-form notes)
   customContext   String?   @db.Text
-
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@index([userId])
 }
 
-// Google Calendar tokens
 model CalendarToken {
   id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  accessToken     String    @db.Text
-  refreshToken    String    @db.Text
-  expiresAt       DateTime
-  calendarId      String    @default("primary")
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([userId])
-}
-
-// Chat history
-model ChatMessage {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  role            MessageRole
-  content         String    @db.Text
-  source          MessageSource @default(WEB)
-
-  createdAt       DateTime  @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-enum MessageRole {
-  USER
-  ASSISTANT
-}
-
-enum MessageSource {
-  WEB
-  DISCORD
-  TELEGRAM
-  SMS
-}
-
-// Discord connection
-model DiscordConnection {
-  id              String    @id @default(cuid())
   userId          String    @unique
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  discordUserId   String
-  discordUsername String?
-  dmChannelId     String?
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([discordUserId])
-}
-
-// Telegram connection
-model TelegramConnection {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  telegramChatId  String
-  telegramUsername String?
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([telegramChatId])
-}
-
-// Waitlist for pre-launch signups
-model WaitlistEntry {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  referralSource  String?
-  createdAt       DateTime  @default(now())
-
-  @@index([email])
-}
+  accessToken     String    @db.
